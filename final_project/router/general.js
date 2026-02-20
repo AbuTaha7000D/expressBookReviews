@@ -8,7 +8,6 @@ const public_users = express.Router();
 // ---------------------------------------------------------
 public_users.get('/', async function (req, res) {
 	try {
-		// إنشاء Promise لمحاكاة عملية جلب بيانات غير متزامنة
 		const booksData = await new Promise((resolve, reject) => {
 			if (books && Object.keys(books).length > 0) {
 				resolve(books);
@@ -16,10 +15,7 @@ public_users.get('/', async function (req, res) {
 				reject("No books found in database");
 			}
 		});
-
-		// إرجاع البيانات منسقة باستخدام JSON.stringify
 		return res.send(JSON.stringify(booksData, null, 4));
-
 	} catch (error) {
 		console.error("Error fetching books:", error);
 		return res.status(500).json({ message: "Internal server error", error: error });
@@ -27,29 +23,34 @@ public_users.get('/', async function (req, res) {
 });
 
 // ---------------------------------------------------------
-// Task 2: Get book details based on ISBN
-// Implemented using Promises (as required previously)
+// Task 11: Get book details based on ISBN
+// Implemented using Async/Await with Promises (Updated)
 // ---------------------------------------------------------
-public_users.get('/isbn/:isbn', function (req, res) {
+public_users.get('/isbn/:isbn', async function (req, res) {
 	const ISBN = req.params.isbn;
 
-	new Promise((resolve, reject) => {
-		if (books[ISBN]) {
-			resolve(books[ISBN]);
-		} else {
-			reject("Book not found");
-		}
-	})
-		.then((data) => {
-			res.send(JSON.stringify(data, null, 4));
-		})
-		.catch((err) => {
-			res.status(404).json({ message: err });
+	try {
+		// إنشاء Promise للبحث عن الكتاب وانتظار نتيجته
+		const bookData = await new Promise((resolve, reject) => {
+			if (books[ISBN]) {
+				resolve(books[ISBN]);
+			} else {
+				reject("Book not found");
+			}
 		});
+
+		// إذا نجح الـ Promise، نرجع البيانات
+		return res.send(JSON.stringify(bookData, null, 4));
+
+	} catch (error) {
+		// إذا فشل الـ Promise (كتاب غير موجود)، نرجع خطأ 404
+		return res.status(404).json({ message: error });
+	}
 });
 
 // ---------------------------------------------------------
 // Task 3: Get book details based on author
+// (Can be updated to Async/Await in Task 12 if needed)
 // ---------------------------------------------------------
 public_users.get('/author/:author', function (req, res) {
 	const author = req.params.author;
@@ -70,6 +71,7 @@ public_users.get('/author/:author', function (req, res) {
 
 // ---------------------------------------------------------
 // Task 4: Get all books based on title
+// (Can be updated to Async/Await in Task 13 if needed)
 // ---------------------------------------------------------
 public_users.get('/title/:title', function (req, res) {
 	const title = req.params.title;
