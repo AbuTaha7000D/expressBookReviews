@@ -24,13 +24,12 @@ public_users.get('/', async function (req, res) {
 
 // ---------------------------------------------------------
 // Task 11: Get book details based on ISBN
-// Implemented using Async/Await with Promises (Updated)
+// Implemented using Async/Await with Promises
 // ---------------------------------------------------------
 public_users.get('/isbn/:isbn', async function (req, res) {
 	const ISBN = req.params.isbn;
 
 	try {
-		// إنشاء Promise للبحث عن الكتاب وانتظار نتيجته
 		const bookData = await new Promise((resolve, reject) => {
 			if (books[ISBN]) {
 				resolve(books[ISBN]);
@@ -38,40 +37,56 @@ public_users.get('/isbn/:isbn', async function (req, res) {
 				reject("Book not found");
 			}
 		});
-
-		// إذا نجح الـ Promise، نرجع البيانات
 		return res.send(JSON.stringify(bookData, null, 4));
-
 	} catch (error) {
-		// إذا فشل الـ Promise (كتاب غير موجود)، نرجع خطأ 404
 		return res.status(404).json({ message: error });
 	}
 });
 
 // ---------------------------------------------------------
-// Task 3: Get book details based on author
-// (Can be updated to Async/Await in Task 12 if needed)
+// Task 12: Get book details based on Author
+// Implemented using Async/Await with Promises (Updated)
 // ---------------------------------------------------------
-public_users.get('/author/:author', function (req, res) {
+public_users.get('/author/:author', async function (req, res) {
 	const author = req.params.author;
-	let foundBooks = [];
 
-	for (const ISBN in books) {
-		if (books[ISBN].author === author) {
-			foundBooks.push(books[ISBN]);
-		}
-	}
+	try {
+		// إنشاء Promise للبحث عن الكتب وانتظار اكتمال البحث
+		const foundBooks = await new Promise((resolve, reject) => {
+			let results = [];
 
-	if (foundBooks.length > 0) {
+			// التحقق من وجود بيانات الكتب
+			if (!books || Object.keys(books).length === 0) {
+				reject("No books available");
+				return;
+			}
+
+			// التكرار عبر جميع الكتب للبحث عن المؤلف
+			for (const ISBN in books) {
+				if (books.hasOwnProperty(ISBN) && books[ISBN].author === author) {
+					results.push(books[ISBN]);
+				}
+			}
+
+			if (results.length > 0) {
+				resolve(results);
+			} else {
+				reject("No books found by this author");
+			}
+		});
+
+		// إذا نجح البحث، نرجع النتائج
 		return res.send(JSON.stringify(foundBooks, null, 4));
-	} else {
-		return res.status(404).json({ message: "No books found by this author" });
+
+	} catch (error) {
+		// إذا فشل البحث (لا نتائج)، نرجع خطأ 404
+		return res.status(404).json({ message: error });
 	}
 });
 
 // ---------------------------------------------------------
 // Task 4: Get all books based on title
-// (Can be updated to Async/Await in Task 13 if needed)
+// (Will be updated in Task 13)
 // ---------------------------------------------------------
 public_users.get('/title/:title', function (req, res) {
 	const title = req.params.title;
