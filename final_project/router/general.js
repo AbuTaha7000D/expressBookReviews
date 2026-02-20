@@ -45,23 +45,20 @@ public_users.get('/isbn/:isbn', async function (req, res) {
 
 // ---------------------------------------------------------
 // Task 12: Get book details based on Author
-// Implemented using Async/Await with Promises (Updated)
+// Implemented using Async/Await with Promises
 // ---------------------------------------------------------
 public_users.get('/author/:author', async function (req, res) {
 	const author = req.params.author;
 
 	try {
-		// إنشاء Promise للبحث عن الكتب وانتظار اكتمال البحث
 		const foundBooks = await new Promise((resolve, reject) => {
 			let results = [];
 
-			// التحقق من وجود بيانات الكتب
 			if (!books || Object.keys(books).length === 0) {
 				reject("No books available");
 				return;
 			}
 
-			// التكرار عبر جميع الكتب للبحث عن المؤلف
 			for (const ISBN in books) {
 				if (books.hasOwnProperty(ISBN) && books[ISBN].author === author) {
 					results.push(books[ISBN]);
@@ -75,33 +72,51 @@ public_users.get('/author/:author', async function (req, res) {
 			}
 		});
 
+		return res.send(JSON.stringify(foundBooks, null, 4));
+
+	} catch (error) {
+		return res.status(404).json({ message: error });
+	}
+});
+
+// ---------------------------------------------------------
+// Task 13: Get all books based on Title
+// Implemented using Async/Await with Promises (Updated)
+// ---------------------------------------------------------
+public_users.get('/title/:title', async function (req, res) {
+	const title = req.params.title;
+
+	try {
+		// إنشاء Promise للبحث عن الكتب وانتظار اكتمال البحث
+		const foundBooks = await new Promise((resolve, reject) => {
+			let results = [];
+
+			// التحقق من وجود بيانات الكتب
+			if (!books || Object.keys(books).length === 0) {
+				reject("No books available");
+				return;
+			}
+
+			// التكرار عبر جميع الكتب للبحث عن العنوان
+			for (const ISBN in books) {
+				if (books.hasOwnProperty(ISBN) && books[ISBN].title === title) {
+					results.push(books[ISBN]);
+				}
+			}
+
+			if (results.length > 0) {
+				resolve(results);
+			} else {
+				reject("No books found with this title");
+			}
+		});
+
 		// إذا نجح البحث، نرجع النتائج
 		return res.send(JSON.stringify(foundBooks, null, 4));
 
 	} catch (error) {
 		// إذا فشل البحث (لا نتائج)، نرجع خطأ 404
 		return res.status(404).json({ message: error });
-	}
-});
-
-// ---------------------------------------------------------
-// Task 4: Get all books based on title
-// (Will be updated in Task 13)
-// ---------------------------------------------------------
-public_users.get('/title/:title', function (req, res) {
-	const title = req.params.title;
-	let foundBooks = [];
-
-	for (const ISBN in books) {
-		if (books[ISBN].title === title) {
-			foundBooks.push(books[ISBN]);
-		}
-	}
-
-	if (foundBooks.length > 0) {
-		return res.send(JSON.stringify(foundBooks, null, 4));
-	} else {
-		return res.status(404).json({ message: "No books found with this title" });
 	}
 });
 
