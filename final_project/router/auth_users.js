@@ -5,7 +5,7 @@ const regd_users = express.Router();
 
 let users = [];
 
-// Function to check if username exists
+// دالة للتحقق مما إذا كان اسم المستخدم موجوداً بالفعل
 const isValid = (username) => {
 	let userswithsamename = users.filter((user) => {
 		return user.username === username;
@@ -17,7 +17,7 @@ const isValid = (username) => {
 	}
 }
 
-// Function to check credentials
+// دالة للتحقق من صحة اسم المستخدم وكلمة المرور
 const authenticatedUser = (username, password) => {
 	let sameusers = users.filter((user) => {
 		return user.username === username && user.password === password;
@@ -29,26 +29,39 @@ const authenticatedUser = (username, password) => {
 	}
 }
 
-// Route: Register (Moved here logically, but kept in general.js as per skeleton usually, 
-// however skeleton had it in general.js, so we leave POST /register in general.js 
-// and only handle Login here as per standard separation, 
-// BUT looking at your previous code, Register was in general.js. 
-// Let's ensure Login works here.)
+// --- Route: تسجيل مستخدم جديد (Register) ---
+regd_users.post("/register", (req, res) => {
+	const username = req.body.username;
+	const password = req.body.password;
 
-// Route: Login
+	if (!username || !password) {
+		return res.status(400).json({ message: "Username and password are required" });
+	}
+
+	if (isValid(username)) {
+		return res.status(409).json({ message: "User already exists!" });
+	} else {
+		users.push({ "username": username, "password": password });
+		return res.status(200).json({ message: "User successfully registered. Now you can login" });
+	}
+});
+
+// --- Route: تسجيل الدخول (Login) - Task 7 ---
 regd_users.post("/login", (req, res) => {
 	const username = req.body.username;
 	const password = req.body.password;
 
 	if (!username || !password) {
-		return res.status(404).json({ message: "Error logging in" });
+		return res.status(400).json({ message: "Username and password are required" });
 	}
 
 	if (authenticatedUser(username, password)) {
+		// إنشاء JWT Token
 		let accessToken = jwt.sign({
 			password: password
 		}, 'access_token', { expiresIn: 60 * 60 });
 
+		// حفظ الـ Token ومعلومات المستخدم في الـ Session
 		req.session.authorization = {
 			accessToken: accessToken,
 			username: username
@@ -60,9 +73,76 @@ regd_users.post("/login", (req, res) => {
 	}
 });
 
-// Placeholder for Add Review (Will be implemented in next tasks)
+// --- Route: إضافة أو تعديل مراجعة كتاب - Task 8 ---
 regd_users.put("/auth/review/:isbn", (req, res) => {
-	return res.status(300).json({ message: "Yet to be implemented" });
+	const ISBN = req.params.isbn;
+	const review = req.body.review;
+
+	// التحقق من وجود الجلسة واسم المستخدم
+	if (!req.session || !req.session.authorization || !req.session.authorization.username) {
+		return res.status(401).json({ message: "User not logged in" });
+	}
+
+	const username = req.session.authorization.username;
+
+	// التحقق من وجود نص المراجعة
+	if (!review) {
+		return res.status(400).json({ message: "Review content is required" });
+	}
+
+	// التحقق من وجود الكتاب
+	if (!books[ISBN]) {
+		return res.status(404).json({ message: "Book not found" });
+	}
+
+	// تهيئة كائن المراجعات إذا لم يكن موجوداً
+	if (!books[ISBN].reviews) {
+		books[ISBN].reviews = {};
+	}
+
+	// إضافة أو تعديل المراجعة
+	books[ISBN].reviews[username] = review;
+
+	return res.status(200).json({
+		message: "Review successfully added/updated",
+		review: books[ISBN].reviews[username]
+	});
+});
+
+// --- Route: حذف مراجعة كتاب - Task 9 ---
+regd_users.delete("/auth/review/:isbn", (req, res) => {
+	const ISBN = req.params.isbn;
+
+	// التحقق من وجود الجلسة واسم المستخدم
+	if (!req.session || !req.session.authorization || !req.session.authorization.username) {
+		return res.status(401).json({ message: "User not logged in" });
+	}
+
+	const username = req.session.authorization.username;
+
+	// التحقق من وجود الكتاب
+	if (!books[ISBN]) {
+		return res.status(404).json({ message: "Book not found" });
+	}
+
+	// التحقق من وجود مراجعات للكتاب
+	if (!books[ISBN].reviews) {
+		return res.status(404).json({ message: "No reviews found for this book" });
+	}
+
+	// التحقق مما إذا كان المستخدم قد كتب مراجعة لهذا الكتاب أصلاً
+	// هذا يضمن أن المستخدم يحذف مراجعته هو فقط
+	if (!books[ISBN].reviews[username]) {
+		return res.status(404).json({ message: "Review not found or you are not authorized to delete it" });
+	}
+
+	// حذف المراجعة الخاصة بهذا المستخدم فقط
+	delete books[ISBN].reviews[username];
+
+	return res.status(200).json({
+		message: "Review successfully deleted",
+		remaining_reviews: books[ISBN].reviews
+	});
 });
 
 module.exports.authenticated = regd_users;
